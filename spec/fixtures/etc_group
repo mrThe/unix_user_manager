@@ -1,0 +1,8 @@
+root:x:0:
+daemon:x:1:
+bin:x:2:
+sys:x:3:
+games:x:60:
+mail:x:8:
+nogroup:x:65534:
+syslog:x:104:

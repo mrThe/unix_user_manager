@@ -1,0 +1,9 @@
+root:$6$saltsalt$gU.wVYyqjh0n2IsgxbE4atT8Chx29OVzUEfA6jKMx78yWWXKps.yhvMl9bdzKKUTahaF4xW6DUWlah4v0KWdi1:16841:0:99999:7:::
+daemon:*:16231:0:99999:7:::
+bin:*:16231:0:99999:7:::
+sys:*:16231:0:99999:7:::
+sync:*:16231:0:99999:7:::
+games:*:16231:0:99999:7:::
+mail:*:16231:0:99999:7:::
+nobody:*:16231:0:99999:7:::
+syslog:*:16231:0:99999:7:::

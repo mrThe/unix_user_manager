@@ -6,8 +6,6 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
     true
   end
 
-  private
-
   def build_new_records
     @new_records.map { |name, data| "#{name}:x:#{data[:uid]}:#{data[:gid]}::/dev/null:/bin/bash" }.join("\n")
   end

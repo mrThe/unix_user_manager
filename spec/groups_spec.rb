@@ -23,5 +23,12 @@ describe UnixUserManager::Groups do
         manager_object.build
       end
     end
+
+    describe "#build_new_records" do
+      it "calls file" do
+        expect(manager_object.file).to receive(:build_new_records)
+        manager_object.build_new_records
+      end
+    end
   end
 end

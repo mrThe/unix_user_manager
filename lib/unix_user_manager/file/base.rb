@@ -43,11 +43,11 @@ module UnixUserManager::File
       @new_records.any? ? (source + "\n" + build_new_records) : source
     end
 
-    private
-
     def build_new_records
       raise NotImplementedError
     end
+
+    private
 
     def parse_file
       @data = source.split("\n")

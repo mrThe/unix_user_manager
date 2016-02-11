@@ -19,6 +19,28 @@ describe UnixUserManager::File::Passwd do
       let(:gid)  { 42 }
 
       context "without new records" do
+        it "returns empty string" do
+          expect(file.build_new_records).to be_empty
+        end
+      end
+
+      context "with new records" do
+        before do
+          file.add(name: name, gid: gid, uid: uid)
+        end
+
+        it "correctly builds new records" do
+          expect(file.build_new_records).to eql "#{name}:x:#{uid}:#{gid}::/dev/null:/bin/bash"
+        end
+      end
+    end
+
+    describe "#build" do
+      let(:name) { 'risky_man' }
+      let(:uid)  { 42 }
+      let(:gid)  { 42 }
+
+      context "without new records" do
         it "correctly builds new records" do
           expect(file.build).to eql etc_passwd_content
         end

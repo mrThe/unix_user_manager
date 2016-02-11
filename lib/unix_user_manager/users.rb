@@ -10,12 +10,24 @@ class UnixUserManager::Users < UnixUserManager::Base
     file.build
   end
 
+  def build_passwd_new_records
+    file.build_new_records
+  end
+
   def build_shadow
     shadow_file.build
   end
 
+  def build_shadow_new_records
+    shadow_file.build_new_records
+  end
+
   def build
     { passwd: build_passwd, shadow: build_shadow }
+  end
+
+  def build_new_records
+    { passwd: build_passwd_new_records, shadow: build_shadow_new_records }
   end
 
   def add(name:, uid:, gid:)

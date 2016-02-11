@@ -1,6 +1,6 @@
 class UnixUserManager::Base
   attr_reader :file
-  DELEGATED_METHODS = [:ids, :find, :find_by_id, :exist?, :add, :all, :build].freeze
+  DELEGATED_METHODS = [:ids, :find, :find_by_id, :exist?, :add, :all, :build, :build_new_records].freeze
 
   def initialize(*args)
     raise NotImplementedError

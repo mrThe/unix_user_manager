@@ -13,6 +13,28 @@ describe UnixUserManager::File::Group do
     let(:existed_name) { 'games' }
     let(:existed_id) { 60 }
 
+    describe "#build_new_records" do
+      let(:name)  { 'risky_man' }
+      let(:uname) { 'risky_man' }
+      let(:gid)   { 42 }
+
+      context "without new records" do
+        it "returns empty string" do
+          expect(file.build_new_records).to be_empty
+        end
+      end
+
+      context "with new records" do
+        before do
+          file.add(name: name, gid: gid, uname: uname)
+        end
+
+        it "correctly builds new records" do
+          expect(file.build_new_records).to eql "#{name}:x:#{gid}:#{uname}"
+        end
+      end
+    end
+
     describe "#build" do
       let(:name)  { 'risky_man' }
       let(:uname) { 'risky_man' }

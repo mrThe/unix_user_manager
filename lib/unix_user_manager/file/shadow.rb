@@ -11,8 +11,6 @@ class UnixUserManager::File::Shadow < UnixUserManager::File::Base
     true
   end
 
-  private
-
   def build_new_records
     @new_records.map { |name, _| "#{name}:!!:::::::" }.join("\n")
   end

@@ -6,8 +6,6 @@ class UnixUserManager::File::Group < UnixUserManager::File::Base
     true
   end
 
-  private
-
   def build_new_records
     @new_records.map { |name, data| "#{name}:x:#{data[:gid]}:#{data[:uname]}" }.join("\n")
   end

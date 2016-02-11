@@ -46,6 +46,11 @@ Or install it yourself as:
 
   # or
   um.users.build # { passwd: "...content...", shadow: "...content..." } new contents for /etc/passwd and /etc/shadow
+
+  # or build only new lines
+  um.users.build_passwd_new_records # new lines for /etc/passwd, eg "risky_man:x:42:42::/dev/null:/bin/bash"
+  um.users.build_shadow_new_records # new lines for /etc/shadow, eg "risky_man:!!:::::::"
+  um.groups.build_new_records       # new lines for /etc/group,  eg "risky_group:x:42:risky_man"
 ```
 
 ## TODO

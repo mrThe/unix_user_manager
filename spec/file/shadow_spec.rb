@@ -15,6 +15,26 @@ describe UnixUserManager::File::Shadow do
       let(:name) { 'risky_man' }
 
       context "without new records" do
+        it "returns empty string" do
+          expect(file.build_new_records).to be_empty
+        end
+      end
+
+      context "with new records" do
+        before do
+          file.add(name: name)
+        end
+
+        it "correctly builds new records" do
+          expect(file.build_new_records).to eql "#{name}:!!:::::::"
+        end
+      end
+    end
+
+    describe "#build" do
+      let(:name) { 'risky_man' }
+
+      context "without new records" do
         it "correctly builds new records" do
           expect(file.build).to eql etc_shadow_content
         end

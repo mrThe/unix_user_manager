@@ -2,7 +2,7 @@
 
 Management tool for unix users. Manually edits `/etc/passwd`, `/etc/shadow` and `/etc/groups`.
 
-It will not write anything to your files, but use it on your own risk!
+It will not read norwrite anything to your files, but use it on your own risk!
 
 ## Installation
 
@@ -23,9 +23,9 @@ Or install it yourself as:
 ## Usage
 
 ```ruby
-  passwd = `cat /etc/passwd`
-  group  = `cat /etc/group`
-  shadow = `cat /etc/shadow`
+  passwd = `sudo cat /etc/passwd` # File.read('/etc/passwd') # your process should have permission
+  group  = `sudo cat /etc/group`  # File.read('/etc/group') # your process should have permission
+  shadow = `sudo cat /etc/shadow` # File.read('/etc/shadow') # your process should have permission
 
   # initialize
   um = UnixUserManager.new passwd: passwd, group: group, shadow: shadow
@@ -34,7 +34,8 @@ Or install it yourself as:
   new_id = um.available_id(min_id: 100, max_id: 500, preffered_ids: [200, 300, 333, 400, 500], recursive: false) # 42
 
   # add new user
-  um.users.add(name: "risky_man", uid: new_id, gid: new_id) # true
+  um.users.add(name: "risky_man", uid: new_id, gid: new_id, shell: '/bin/bash', home_directory: '/home/riskiy_man') # true
+  # `shell` and `home_directory` params are optional with default values as shown above
 
   # add new group
   um.groups.add(name: "risky_group", uname: "risky_man", gid: new_id) # true
@@ -58,7 +59,7 @@ Or install it yourself as:
 1. Add support for edit users/groups
 2. Add support for destroy users/groups
 3. Add support for user with passwords
-5. Add support for gshadow
+4. Add support for gshadow
 
 ## Development
 
@@ -68,7 +69,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-1. Fork it ( https://github.com/[my-github-username]/unix_user_manager/fork )
+1. Fork it ( https://github.com/mrThe/unix_user_manager/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

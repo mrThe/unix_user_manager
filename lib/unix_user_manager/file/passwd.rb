@@ -1,5 +1,5 @@
 class UnixUserManager::File::Passwd < UnixUserManager::File::Base
-  def add(name:, uid:, gid:, shell: '/bin/bash')
+  def add(name:, uid:, gid:, home_directory: '/dev/null', shell: '/bin/bash')
     return false unless can_add?(name, uid)
     @new_records[name] = { uid: uid, gid: gid }
 
@@ -7,6 +7,8 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
   end
 
   def build_new_records
-    @new_records.map { |name, data| "#{name}:x:#{data[:uid]}:#{data[:gid]}::/dev/null:#{shell}" }.join("\n")
+    @new_records.map do |name, data|
+      "#{name}:x:#{data[:uid]}:#{data[:gid]}::#{home_directory}:#{shell}"
+    end.join("\n")
   end
 end

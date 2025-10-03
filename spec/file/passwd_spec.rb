@@ -76,5 +76,41 @@ describe UnixUserManager::File::Passwd do
         it { should be_truthy }
       end
     end
+
+    describe "#edit(name:, ...)" do
+      context "when user does not exist" do
+        subject { file.edit(name: 'hacker', uid: 42) }
+
+        it { should be_falsey }
+      end
+
+      context "when changing uid to an existing one" do
+        subject { file.edit(name: existed_name, uid: 0) }
+
+        it { should be_falsey }
+      end
+
+      context "when valid changes" do
+        it "updates uid, gid, home and shell in build output" do
+          expect(
+            file.edit(name: existed_name, uid: 420, gid: 420, home_directory: '/home/games', shell: '/bin/zsh')
+          ).to be_truthy
+
+          built_lines = file.build.split("\n")
+          edited_line = built_lines.find { |l| l.start_with?("#{existed_name}:") }
+          expect(edited_line).to eql "#{existed_name}:x:420:420:games:/home/games:/bin/zsh"
+        end
+
+        it "keeps other lines unchanged" do
+          file.edit(name: existed_name, shell: '/bin/sh')
+          original = etc_passwd_content.split("\n")
+          updated  = file.build.split("\n")
+          original.each do |line|
+            next if line.start_with?("#{existed_name}:")
+            expect(updated).to include(line)
+          end
+        end
+      end
+    end
   end
 end

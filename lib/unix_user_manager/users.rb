@@ -35,4 +35,8 @@ class UnixUserManager::Users < UnixUserManager::Base
 
     file.add(name: name, uid: uid, gid: gid) && shadow_file.add(name: name)
   end
+
+  def edit(name:, uid: nil, gid: nil, home_directory: nil, shell: nil)
+    file.edit(name: name, uid: uid, gid: gid, home_directory: home_directory, shell: shell)
+  end
 end

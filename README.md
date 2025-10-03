@@ -40,6 +40,9 @@ Or install it yourself as:
   # add new group
   um.groups.add(name: "risky_group", uname: "risky_man", gid: new_id) # true
 
+  # edit existing user (returns true if valid and queued for build)
+  um.users.edit(name: "games", uid: 420, gid: 420, home_directory: "/home/games", shell: "/bin/zsh") # true/false
+
   # build new configs
   um.users.build_passwd # new contents for /etc/passwd
   um.users.build_shadow # new contents for /etc/shadow
@@ -56,7 +59,7 @@ Or install it yourself as:
 
 ## TODO
 
-1. Add support for edit users/groups
+1. Add support for edit groups
 2. Add support for destroy users/groups
 3. Add support for user with passwords
 4. Add support for gshadow

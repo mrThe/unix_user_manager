@@ -4,14 +4,22 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
     super
   end
 
-  def add(name:, uid:, gid:, home_directory: '/dev/null', shell: '/bin/bash')
+  def add(name:, uid:, gid:, home_directory: '/dev/null', shell: '/bin/bash', password: nil, encrypted_password: nil, salt: nil, algorithm: :sha512)
     return false unless can_add?(name, uid)
-    @new_records[name] = { uid: uid, gid: gid, home_directory: home_directory, shell: shell }
+
+    pass_field = 'x'
+    if encrypted_password && !encrypted_password.to_s.empty?
+      pass_field = encrypted_password
+    elsif password && !password.to_s.empty?
+      pass_field = UnixUserManager::Utils::Password.hash(password: password, algorithm: algorithm, salt: salt)
+    end
+
+    @new_records[name] = { uid: uid, gid: gid, home_directory: home_directory, shell: shell, password: pass_field }
 
     true
   end
 
-  def edit(name:, uid: nil, gid: nil, home_directory: nil, shell: nil)
+  def edit(name:, uid: nil, gid: nil, home_directory: nil, shell: nil, password: nil, encrypted_password: nil, salt: nil, algorithm: :sha512)
     return false unless exist?(name)
 
     # Ensure we have a resolvable current uid for the target user; otherwise, fail fast
@@ -25,11 +33,17 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
       return false if @new_records.any? { |other_name, data| other_name != name && data[:uid] == uid }
     end
 
-    @edited_records[name] ||= { uid: nil, gid: nil, home_directory: nil, shell: nil }
+    @edited_records[name] ||= { uid: nil, gid: nil, home_directory: nil, shell: nil, password: nil }
     @edited_records[name][:uid] = uid unless uid.nil?
     @edited_records[name][:gid] = gid unless gid.nil?
     @edited_records[name][:home_directory] = home_directory unless home_directory.nil?
     @edited_records[name][:shell] = shell unless shell.nil?
+
+    if encrypted_password && !encrypted_password.to_s.empty?
+      @edited_records[name][:password] = encrypted_password
+    elsif password && !password.to_s.empty?
+      @edited_records[name][:password] = UnixUserManager::Utils::Password.hash(password: password, algorithm: algorithm, salt: salt)
+    end
 
     true
   end
@@ -44,7 +58,7 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
         uname = parts[0]
         if @edited_records.key?(uname)
           edits = @edited_records[uname]
-          passwd_marker = parts[1]
+          passwd_marker = edits[:password].nil? ? parts[1] : edits[:password]
           new_uid = edits[:uid].nil? ? parts[2] : edits[:uid].to_s
           new_gid = edits[:gid].nil? ? parts[3] : edits[:gid].to_s
           gecos = parts[4]
@@ -66,7 +80,7 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
 
   def build_new_records
     @new_records.map do |name, data|
-      "#{name}:x:#{data[:uid]}:#{data[:gid]}::#{data[:home_directory]}:#{data[:shell]}"
+      "#{name}:#{data[:password] || 'x'}:#{data[:uid]}:#{data[:gid]}::#{data[:home_directory]}:#{data[:shell]}"
     end.join("\n")
   end
 end

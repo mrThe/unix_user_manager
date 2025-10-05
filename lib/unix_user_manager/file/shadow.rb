@@ -16,16 +16,7 @@ class UnixUserManager::File::Shadow < UnixUserManager::File::Base
     if encrypted_password && !encrypted_password.to_s.empty?
       @new_records[name] = { password: encrypted_password }
     elsif password && !password.to_s.empty?
-      salt ||= SecureRandom.hex(8)
-      prefix = case algorithm
-               when :sha512 then '$6$'
-               when :sha256 then '$5$'
-               when :md5    then '$1$'
-               else '$6$'
-               end
-      full_salt = "#{prefix}#{salt}$"
-      hashed = password.crypt(full_salt)
-      hashed = "#{full_salt}#{hashed}" unless hashed.start_with?(full_salt)
+      hashed = UnixUserManager::Utils::Password.hash(password: password, algorithm: algorithm, salt: salt)
       @new_records[name] = { password: hashed }
     else
       @new_records[name] = { password: '!!' }
@@ -37,23 +28,14 @@ class UnixUserManager::File::Shadow < UnixUserManager::File::Base
   def edit(name:, password: nil, encrypted_password: nil, salt: nil, algorithm: :sha512)
     return false unless exist?(name)
 
-    new_hash = nil
-    if encrypted_password && !encrypted_password.to_s.empty?
-      new_hash = encrypted_password
-    elsif password && !password.to_s.empty?
-      salt ||= SecureRandom.hex(8)
-      prefix = case algorithm
-               when :sha512 then '$6$'
-               when :sha256 then '$5$'
-               when :md5    then '$1$'
-               else '$6$'
-               end
-      full_salt = "#{prefix}#{salt}$"
-      new_hash = password.crypt(full_salt)
-      new_hash = "#{full_salt}#{new_hash}" unless new_hash.start_with?(full_salt)
-    else
-      new_hash = '!!'
-    end
+    new_hash =
+      if encrypted_password && !encrypted_password.to_s.empty?
+        encrypted_password
+      elsif password && !password.to_s.empty?
+        UnixUserManager::Utils::Password.hash(password: password, algorithm: algorithm, salt: salt)
+      else
+        '!!'
+      end
 
     @edited_records[name] = { password: new_hash }
     true
@@ -77,11 +59,7 @@ class UnixUserManager::File::Shadow < UnixUserManager::File::Base
       end
     end.join("\n")
 
-    if @new_records.any?
-      updated_source + "\n" + build_new_records
-    else
-      updated_source
-    end
+    @new_records.any? ? (updated_source + "\n" + build_new_records) : updated_source
   end
 
   def build_new_records

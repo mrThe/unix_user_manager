@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'unix_crypt'
 
 describe UnixUserManager::File::Shadow do
   describe ".initialize" do
@@ -99,18 +100,25 @@ describe UnixUserManager::File::Shadow do
 
     describe "#edit(name:, password:, encrypted_password:)" do
       context "when user does not exist" do
-        subject { file.edit(name: 'unknown', password: 'secret') }
+        subject { file.edit(name: 'unknown') }
 
         it { should be_falsey }
       end
 
-      context "when setting encrypted password" do
-        let(:hash) { '$6$saltsalt$abcdef' }
+      context "when editing with default (no password provided)" do
+        it "sets placeholder '!!' for the user in build output" do
+          expect(file.edit(name: 'games')).to be_truthy
 
-        it "replaces password field with given hash" do
-          expect(file.edit(name: 'games', encrypted_password: hash)).to be_truthy
           line = file.build.split("\n").find { |l| l.start_with?('games:') }
-          expect(line.split(':')[1]).to eql hash
+          expect(line.split(':')[1]).to eql '!!'
+        end
+      end
+
+      context "when setting encrypted password" do
+        it "uses the provided hash as is" do
+          expect(file.edit(name: 'games', encrypted_password: '$6$saltsalt$abcdef')).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          expect(line.split(':')[1]).to eql '$6$saltsalt$abcdef'
         end
       end
 
@@ -118,45 +126,57 @@ describe UnixUserManager::File::Shadow do
         it "hashes with sha512 by default" do
           expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt')).to be_truthy
           line = file.build.split("\n").find { |l| l.start_with?('games:') }
-          expect(line.split(':')[1]).to match(/^\$6\$/)
+          expect(line.split(':')[1]).to match(/^\$6\$saltsalt\$/)
         end
 
         it "supports sha256" do
           expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :sha256)).to be_truthy
           line = file.build.split("\n").find { |l| l.start_with?('games:') }
-          expect(line.split(':')[1]).to match(/^\$5\$/)
+          expect(line.split(':')[1]).to match(/^\$5\$saltsalt\$/)
         end
 
         it "supports md5" do
           expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
           line = file.build.split("\n").find { |l| l.start_with?('games:') }
-          expect(line.split(':')[1]).to match(/^\$1\$/)
+          expect(line.split(':')[1]).to match(/^\$1\$saltsalt\$/)
         end
       end
 
-      context "when editing without any password" do
-        it "sets placeholder '!!'" do
-          expect(file.edit(name: 'games')).to be_truthy
+      context "exact hashes" do
+        it "produces exact sha512 hash" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :sha512)).to be_truthy
           line = file.build.split("\n").find { |l| l.start_with?('games:') }
-          expect(line.split(':')[1]).to eql '!!'
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::SHA512.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
+        end
+
+        it "produces exact sha256 hash" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :sha256)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::SHA256.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
+        end
+
+        it "produces exact md5 hash" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::MD5.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
         end
       end
-    end
 
-    describe "#add(name:, password:, encrypted_password:)" do
-      it "accepts encrypted password" do
-        file.add(name: 'new_user', encrypted_password: '$6$saltsalt$abcdef')
-        expect(file.build_new_records).to include 'new_user:$6$saltsalt$abcdef:'
-      end
+      it "keeps other lines unchanged" do
+        file.edit(name: 'games', password: 'LOCKED')
+        original = etc_shadow_content.split("\n")
+        updated  = file.build.split("\n")
 
-      it "hashes raw password" do
-        file.add(name: 'new_user2', password: 'secret', salt: 'saltsalt', algorithm: :sha256)
-        expect(file.build_new_records).to match(/new_user2:\$5\$saltsalt\$/)
-      end
-
-      it "uses '!!' when no password provided" do
-        file.add(name: 'new_user3')
-        expect(file.build_new_records).to include 'new_user3:!!:'
+        original.each do |l|
+          next if l.start_with?('games:')
+          expect(updated).to include(l)
+        end
       end
     end
   end

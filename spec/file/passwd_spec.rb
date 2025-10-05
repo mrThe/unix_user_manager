@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'unix_crypt'
 
 describe UnixUserManager::File::Passwd do
   it_behaves_like "a etc file" do
@@ -75,6 +76,46 @@ describe UnixUserManager::File::Passwd do
 
         it { should be_truthy }
       end
+
+      context "with passwords" do
+        it "accepts encrypted password" do
+          file.add(name: 'new_user', uid: 420, gid: 420, encrypted_password: '$6$saltsalt$abcdef')
+          expect(file.build_new_records).to include 'new_user:$6$saltsalt$abcdef:420:420::/dev/null:/bin/bash'
+        end
+
+        it "hashes raw password" do
+          file.add(name: 'new_user2', uid: 421, gid: 421, password: 'secret', salt: 'saltsalt', algorithm: :sha256)
+          line = file.build_new_records.split("\n").find { |l| l.start_with?('new_user2:') }
+          password_field = line.split(':')[1]
+          expect(password_field).to match(/^\$5\$saltsalt\$/)
+        end
+
+        context "exact hashes" do
+          it "produces exact sha512 hash on add" do
+            file.add(name: 'user_sha512', uid: 5001, gid: 5001, password: 'secret', salt: 'saltsalt', algorithm: :sha512)
+            line = file.build_new_records.split("\n").find { |l| l.start_with?('user_sha512:') }
+            password_field = line.split(':')[1]
+            expected = UnixCrypt::SHA512.build('secret', 'saltsalt')
+            expect(password_field).to eql expected
+          end
+
+          it "produces exact sha256 hash on add" do
+            file.add(name: 'user_sha256', uid: 5002, gid: 5002, password: 'secret', salt: 'saltsalt', algorithm: :sha256)
+            line = file.build_new_records.split("\n").find { |l| l.start_with?('user_sha256:') }
+            password_field = line.split(':')[1]
+            expected = UnixCrypt::SHA256.build('secret', 'saltsalt')
+            expect(password_field).to eql expected
+          end
+
+          it "produces exact md5 hash on add" do
+            file.add(name: 'user_md5', uid: 5003, gid: 5003, password: 'secret', salt: 'saltsalt', algorithm: :md5)
+            line = file.build_new_records.split("\n").find { |l| l.start_with?('user_md5:') }
+            password_field = line.split(':')[1]
+            expected = UnixCrypt::MD5.build('secret', 'saltsalt')
+            expect(password_field).to eql expected
+          end
+        end
+      end
     end
 
     describe "#edit(name:, ...)" do
@@ -109,6 +150,60 @@ describe UnixUserManager::File::Passwd do
             next if line.start_with?("#{existed_name}:")
             expect(updated).to include(line)
           end
+        end
+      end
+
+      context "when setting encrypted password" do
+        it "uses the provided hash as is" do
+          expect(file.edit(name: existed_name, encrypted_password: '$6$saltsalt$abcdef')).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          expect(line.split(':')[1]).to eql '$6$saltsalt$abcdef'
+        end
+      end
+
+      context "when setting raw password" do
+        it "hashes with sha512 by default" do
+          expect(file.edit(name: existed_name, password: 'secret', salt: 'saltsalt')).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          expect(line.split(':')[1]).to match(/^\$6\$saltsalt\$/)
+        end
+
+        it "supports sha256" do
+          expect(file.edit(name: existed_name, password: 'secret', salt: 'saltsalt', algorithm: :sha256)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          expect(line.split(':')[1]).to match(/^\$5\$saltsalt\$/)
+        end
+
+        it "supports md5" do
+          expect(file.edit(name: existed_name, password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          expect(line.split(':')[1]).to match(/^\$1\$saltsalt\$/)
+        end
+      end
+
+      context "exact hashes" do
+        it "produces exact sha512 hash on edit" do
+          expect(file.edit(name: existed_name, password: 'secret', salt: 'saltsalt', algorithm: :sha512)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::SHA512.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
+        end
+
+        it "produces exact sha256 hash on edit" do
+          expect(file.edit(name: existed_name, password: 'secret', salt: 'saltsalt', algorithm: :sha256)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::SHA256.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
+        end
+
+        it "produces exact md5 hash on edit" do
+          expect(file.edit(name: existed_name, password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?("#{existed_name}:") }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::MD5.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
         end
       end
     end

@@ -76,5 +76,41 @@ describe UnixUserManager::File::Group do
         it { should be_truthy }
       end
     end
+
+    describe "#edit(name:, ...)" do
+      context "when group does not exist" do
+        subject { file.edit(name: 'unknown', gid: 42) }
+
+        it { should be_falsey }
+      end
+
+      context "when changing gid to an existing one" do
+        subject { file.edit(name: existed_name, gid: 0) }
+
+        it { should be_falsey }
+      end
+
+      context "when valid changes" do
+        it "updates gid and members in build output" do
+          expect(
+            file.edit(name: existed_name, gid: 420, uname: 'games,user1,user2')
+          ).to be_truthy
+
+          built_lines = file.build.split("\n")
+          edited_line = built_lines.find { |l| l.start_with?("#{existed_name}:") }
+          expect(edited_line).to eql "#{existed_name}:x:420:games,user1,user2"
+        end
+
+        it "keeps other lines unchanged" do
+          file.edit(name: existed_name, uname: 'games')
+          original = etc_group_content.split("\n")
+          updated  = file.build.split("\n")
+          original.each do |line|
+            next if line.start_with?("#{existed_name}:")
+            expect(updated).to include(line)
+          end
+        end
+      end
+    end
   end
 end

@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'unix_crypt'
 
 describe UnixUserManager::File::Shadow do
   describe ".initialize" do
@@ -138,6 +139,32 @@ describe UnixUserManager::File::Shadow do
           expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
           line = file.build.split("\n").find { |l| l.start_with?('games:') }
           expect(line.split(':')[1]).to match(/^\$1\$saltsalt\$/)
+        end
+      end
+
+      context "exact hashes" do
+        it "produces exact sha512 hash" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :sha512)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::SHA512.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
+        end
+
+        it "produces exact sha256 hash" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :sha256)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::SHA256.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
+        end
+
+        it "produces exact md5 hash" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          password_field = line.split(':')[1]
+          expected = UnixCrypt::MD5.build('secret', 'saltsalt')
+          expect(password_field).to eql expected
         end
       end
 

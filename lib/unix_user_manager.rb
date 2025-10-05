@@ -4,6 +4,7 @@ require "unix_user_manager/file/base"
 require "unix_user_manager/file/group"
 require "unix_user_manager/file/passwd"
 require "unix_user_manager/file/shadow"
+require "unix_user_manager/utils/password"
 
 require "unix_user_manager/base"
 require "unix_user_manager/groups"

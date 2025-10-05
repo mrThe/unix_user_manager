@@ -35,6 +35,9 @@ Or install it yourself as:
 
   # add new user
   um.users.add(name: "risky_man", uid: new_id, gid: new_id, shell: '/bin/bash', home_directory: '/home/riskiy_man') # true
+
+  # add new user with a password
+  um.users.add(name: "risky_man", uid: new_id, gid: new_id, shell: '/bin/bash', home_directory: '/home/riskiy_man', password: 'my$ecret', salt: 'mysalt', algorithm: :sha512) # true
   # `shell` and `home_directory` params are optional with default values as shown above
 
   # add new group
@@ -42,6 +45,13 @@ Or install it yourself as:
 
   # edit existing user (returns true if valid and queued for build)
   um.users.edit(name: "games", uid: 420, gid: 420, home_directory: "/home/games", shell: "/bin/zsh") # true/false
+
+  # edit user password in shadow (either provide raw or already encrypted)
+  um.users.edit_shadow(name: "games", password: "my$ecret", salt: "mysalt", algorithm: :sha512) # true/false
+  # or provide an already-encrypted hash (unchanged and used as is)
+  um.users.edit_shadow(name: "games", encrypted_password: "$6$mysalt$...hash...") # true/false
+  # or clear password (set to placeholder '!!')
+  um.users.edit_shadow(name: "games") # true/false
 
   # edit existing group (change gid and member list)
   um.groups.edit(name: "games", gid: 420, uname: "games,user1,user2") # true/false

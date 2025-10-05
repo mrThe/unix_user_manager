@@ -96,5 +96,68 @@ describe UnixUserManager::File::Shadow do
         it { should be_truthy }
       end
     end
+
+    describe "#edit(name:, password:, encrypted_password:)" do
+      context "when user does not exist" do
+        subject { file.edit(name: 'unknown', password: 'secret') }
+
+        it { should be_falsey }
+      end
+
+      context "when setting encrypted password" do
+        let(:hash) { '$6$saltsalt$abcdef' }
+
+        it "replaces password field with given hash" do
+          expect(file.edit(name: 'games', encrypted_password: hash)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          expect(line.split(':')[1]).to eql hash
+        end
+      end
+
+      context "when setting raw password" do
+        it "hashes with sha512 by default" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt')).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          expect(line.split(':')[1]).to match(/^\$6\$/)
+        end
+
+        it "supports sha256" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :sha256)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          expect(line.split(':')[1]).to match(/^\$5\$/)
+        end
+
+        it "supports md5" do
+          expect(file.edit(name: 'games', password: 'secret', salt: 'saltsalt', algorithm: :md5)).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          expect(line.split(':')[1]).to match(/^\$1\$/)
+        end
+      end
+
+      context "when editing without any password" do
+        it "sets placeholder '!!'" do
+          expect(file.edit(name: 'games')).to be_truthy
+          line = file.build.split("\n").find { |l| l.start_with?('games:') }
+          expect(line.split(':')[1]).to eql '!!'
+        end
+      end
+    end
+
+    describe "#add(name:, password:, encrypted_password:)" do
+      it "accepts encrypted password" do
+        file.add(name: 'new_user', encrypted_password: '$6$saltsalt$abcdef')
+        expect(file.build_new_records).to include 'new_user:$6$saltsalt$abcdef:'
+      end
+
+      it "hashes raw password" do
+        file.add(name: 'new_user2', password: 'secret', salt: 'saltsalt', algorithm: :sha256)
+        expect(file.build_new_records).to match(/new_user2:\$5\$saltsalt\$/)
+      end
+
+      it "uses '!!' when no password provided" do
+        file.add(name: 'new_user3')
+        expect(file.build_new_records).to include 'new_user3:!!:'
+      end
+    end
   end
 end

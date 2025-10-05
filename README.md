@@ -2,7 +2,7 @@
 
 Management tool for unix users. Manually edits `/etc/passwd`, `/etc/shadow` and `/etc/groups`.
 
-It will not read norwrite anything to your files, but use it on your own risk!
+It will not read nor write anything to your files, but use it on your own risk!
 
 ## Installation
 
@@ -40,6 +40,12 @@ Or install it yourself as:
   um.users.add(name: "risky_man", uid: new_id, gid: new_id, shell: '/bin/bash', home_directory: '/home/riskiy_man', password: 'my$ecret', salt: 'mysalt', algorithm: :sha512) # true
   # `shell` and `home_directory` params are optional with default values as shown above
 
+  # password hashing notes:
+  # - Hashing is performed using pure-Ruby unix-crypt ($6$, $5$, $1$) via the unix-crypt gem
+  # - Supported algorithms: :sha512 ($6$), :sha256 ($5$), :md5 ($1$)
+  # - You can also pass encrypted_password to use a precomputed crypt hash as-is
+  # - Salt is required to get deterministic hashes in tests; if omitted, a random salt is used
+
   # add new group
   um.groups.add(name: "risky_group", uname: "risky_man", gid: new_id) # true
 
@@ -52,6 +58,10 @@ Or install it yourself as:
   um.users.edit_shadow(name: "games", encrypted_password: "$6$mysalt$...hash...") # true/false
   # or clear password (set to placeholder '!!')
   um.users.edit_shadow(name: "games") # true/false
+
+  # examples with different algorithms
+  um.users.edit_shadow(name: "games", password: "my$ecret", salt: "mysalt", algorithm: :sha256) # => $5$mysalt$...
+  um.users.edit_shadow(name: "games", password: "my$ecret", salt: "mysalt", algorithm: :md5)    # => $1$mysalt$...
 
   # edit existing group (change gid and member list)
   um.groups.edit(name: "games", gid: 420, uname: "games,user1,user2") # true/false
@@ -73,9 +83,7 @@ Or install it yourself as:
 ## TODO
 
 1. Add support for destroy users/groups
-2. Add support for user with passwords
-3. Add support for shadow passwords hashing
-4. Add support for gshadow
+2. Add support for gshadow
 
 ## Development
 

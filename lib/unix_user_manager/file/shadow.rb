@@ -77,11 +77,7 @@ class UnixUserManager::File::Shadow < UnixUserManager::File::Base
       end
     end.join("\n")
 
-    if @new_records.any?
-      updated_source + "\n" + build_new_records
-    else
-      updated_source
-    end
+    @new_records.any? ? (updated_source + "\n" + build_new_records) : updated_source
   end
 
   def build_new_records

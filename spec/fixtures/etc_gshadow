@@ -1,0 +1,9 @@
+root:*::
+daemon:*::
+bin:*::
+sys:*::
+games:*::
+mail:*::
+nogroup:*::
+syslog:*:syslog:
+

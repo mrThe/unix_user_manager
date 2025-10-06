@@ -14,3 +14,7 @@ end
 def etc_group_content
   File.read('spec/fixtures/etc_group')
 end
+
+def etc_gshadow_content
+  File.read('spec/fixtures/etc_gshadow')
+end

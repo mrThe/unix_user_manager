@@ -1,9 +1,8 @@
 require 'securerandom'
 
-class UnixUserManager::File::Shadow < UnixUserManager::File::Base
+class UnixUserManager::File::Shadow < UnixUserManager::File::LineFileBase
   def initialize(source)
     @edited_records = {}
-    @deleted_records = {}
     super
   end
   def ids(*arg);        raise NotImplementedError; end
@@ -42,44 +41,22 @@ class UnixUserManager::File::Shadow < UnixUserManager::File::Base
     true
   end
 
-  def delete(name:)
-    # If it's a newly added record, remove it from the staged new records
-    if @new_records.key?(name)
-      @new_records.delete(name)
-      return true
-    end
-
-    # If it exists in the original data, mark for deletion
-    return false unless exist?(name)
-
-    @deleted_records[name] = true
-    true
-  end
-
   def build
-    updated_source = source.split("\n").map do |line|
-      stripped = line.strip
-      if stripped[0] == '#'
-        line
-      else
-        parts = line.split(':')
-        uname = parts[0]
-        # drop deleted entries
-        next nil if @deleted_records.key?(uname)
-        if @edited_records.key?(uname)
-          edits = @edited_records[uname]
-          parts[1] = edits[:password] unless edits[:password].nil?
-          parts.join(':')
-        else
-          line
-        end
-      end
-    end.compact.join("\n")
-
-    @new_records.any? ? (updated_source + "\n" + build_new_records) : updated_source
+    super
   end
 
   def build_new_records
     @new_records.map { |name, data| "#{name}:#{data[:password] || '!!'}:::::::" }.join("\n")
+  end
+
+  private
+
+  def parse_key_and_id(fields)
+    [fields[0], true]
+  end
+
+  def apply_edits(parts, edits)
+    parts[1] = edits[:password] unless edits[:password].nil?
+    parts
   end
 end

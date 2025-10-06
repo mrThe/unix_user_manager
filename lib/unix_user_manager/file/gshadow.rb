@@ -1,7 +1,5 @@
-class UnixUserManager::File::GShadow < UnixUserManager::File::Base
+class UnixUserManager::File::GShadow < UnixUserManager::File::LineFileBase
   def initialize(source)
-    @edited_records = {}
-    @deleted_records = {}
     super
   end
 
@@ -64,35 +62,24 @@ class UnixUserManager::File::GShadow < UnixUserManager::File::Base
   end
 
   def build
-    # Fast-path: no edits and no deletions => preserve original source exactly
-    if @edited_records.empty? && @deleted_records.empty?
-      return @new_records.any? ? (source + "\n" + build_new_records) : source
-    end
-
-    updated_source = source.split("\n").map do |line|
-      stripped = line.strip
-      if stripped[0] == '#'
-        line
-      else
-        parts = line.split(':')
-        gname = parts[0]
-        next nil if @deleted_records.key?(gname)
-        if @edited_records.key?(gname)
-          edits = @edited_records[gname]
-          new_password = edits[:password].nil? ? parts[1] : edits[:password]
-          new_admins = edits[:admins].nil? ? (parts[2] || "") : edits[:admins]
-          new_members = edits[:members].nil? ? (parts[3] || "") : edits[:members]
-          [gname, new_password, new_admins, new_members].join(':')
-        else
-          line
-        end
-      end
-    end.compact.join("\n")
-
-    @new_records.any? ? (updated_source + "\n" + build_new_records) : updated_source
+    super
   end
 
   def build_new_records
     @new_records.map { |name, data| "#{name}:#{data[:password] || '!'}:#{data[:admins]}:#{data[:members]}" }.join("\n")
+  end
+
+  private
+
+  def parse_key_and_id(fields)
+    [fields[0], true]
+  end
+
+  def apply_edits(parts, edits)
+    gname = parts[0]
+    new_password = edits[:password].nil? ? parts[1] : edits[:password]
+    new_admins = edits[:admins].nil? ? (parts[2] || "") : edits[:admins]
+    new_members = edits[:members].nil? ? (parts[3] || "") : edits[:members]
+    [gname, new_password, new_admins, new_members]
   end
 end

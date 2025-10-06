@@ -1,6 +1,8 @@
 require "unix_user_manager/version"
 
+require "unix_user_manager/utils/line"
 require "unix_user_manager/file/base"
+require "unix_user_manager/file/line_file_base"
 require "unix_user_manager/file/group"
 require "unix_user_manager/file/passwd"
 require "unix_user_manager/file/shadow"

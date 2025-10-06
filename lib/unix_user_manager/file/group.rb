@@ -1,7 +1,5 @@
-class UnixUserManager::File::Group < UnixUserManager::File::Base
+class UnixUserManager::File::Group < UnixUserManager::File::LineFileBase
   def initialize(source)
-    @edited_records = {}
-    @deleted_records = {}
     super
   end
 
@@ -43,37 +41,22 @@ class UnixUserManager::File::Group < UnixUserManager::File::Base
     true
   end
 
-  def build
-    updated_source = source.split("\n").map do |line|
-      stripped = line.strip
-      if stripped[0] == '#'
-        line
-      else
-        parts = line.split(':')
-        uname = parts[0]
-        # drop deleted entries
-        next nil if @deleted_records.key?(uname)
-        if @edited_records.key?(uname)
-          edits = @edited_records[uname]
-          passwd_marker = parts[1]
-          new_gid = edits[:gid].nil? ? parts[2] : edits[:gid].to_s
-          members = parts[3] || ""
-          new_members = edits[:uname].nil? ? members : edits[:uname]
-          [uname, passwd_marker, new_gid, new_members].join(':')
-        else
-          line
-        end
-      end
-    end.compact.join("\n")
-
-    if @new_records.any?
-      updated_source + "\n" + build_new_records
-    else
-      updated_source
-    end
-  end
-
   def build_new_records
     @new_records.map { |name, data| "#{name}:x:#{data[:gid]}:#{data[:uname]}" }.join("\n")
+  end
+
+  private
+
+  def parse_key_and_id(fields)
+    [fields[0], fields[2].to_i]
+  end
+
+  def apply_edits(parts, edits)
+    uname = parts[0]
+    passwd_marker = parts[1]
+    gid = edits[:gid].nil? ? parts[2] : edits[:gid].to_s
+    members = parts[3] || ""
+    new_members = edits[:uname].nil? ? members : edits[:uname]
+    [uname, passwd_marker, gid, new_members]
   end
 end

@@ -1,7 +1,5 @@
-class UnixUserManager::File::Passwd < UnixUserManager::File::Base
+class UnixUserManager::File::Passwd < UnixUserManager::File::LineFileBase
   def initialize(source)
-    @edited_records = {}
-    @deleted_records = {}
     super
   end
 
@@ -64,40 +62,29 @@ class UnixUserManager::File::Passwd < UnixUserManager::File::Base
   end
 
   def build
-    updated_source = source.split("\n").map do |line|
-      stripped = line.strip
-      if stripped[0] == '#'
-        line
-      else
-        parts = line.split(':')
-        uname = parts[0]
-        # drop deleted entries
-        next nil if @deleted_records.key?(uname)
-        if @edited_records.key?(uname)
-          edits = @edited_records[uname]
-          passwd_marker = edits[:password].nil? ? parts[1] : edits[:password]
-          new_uid = edits[:uid].nil? ? parts[2] : edits[:uid].to_s
-          new_gid = edits[:gid].nil? ? parts[3] : edits[:gid].to_s
-          gecos = parts[4]
-          new_home = edits[:home_directory].nil? ? parts[5] : edits[:home_directory]
-          new_shell = edits[:shell].nil? ? parts[6] : edits[:shell]
-          [uname, passwd_marker, new_uid, new_gid, gecos, new_home, new_shell].join(':')
-        else
-          line
-        end
-      end
-    end.compact.join("\n")
-
-    if @new_records.any?
-      updated_source + "\n" + build_new_records
-    else
-      updated_source
-    end
+    super
   end
 
   def build_new_records
     @new_records.map do |name, data|
       "#{name}:#{data[:password] || 'x'}:#{data[:uid]}:#{data[:gid]}::#{data[:home_directory]}:#{data[:shell]}"
     end.join("\n")
+  end
+
+  private
+
+  def parse_key_and_id(fields)
+    [fields[0], fields[2].to_i]
+  end
+
+  def apply_edits(parts, edits)
+    uname = parts[0]
+    passwd_marker = edits[:password].nil? ? parts[1] : edits[:password]
+    uid = edits[:uid].nil? ? parts[2] : edits[:uid].to_s
+    gid = edits[:gid].nil? ? parts[3] : edits[:gid].to_s
+    gecos = parts[4]
+    home = edits[:home_directory].nil? ? parts[5] : edits[:home_directory]
+    shell = edits[:shell].nil? ? parts[6] : edits[:shell]
+    [uname, passwd_marker, uid, gid, gecos, home, shell]
   end
 end

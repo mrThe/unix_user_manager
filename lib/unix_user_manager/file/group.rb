@@ -1,6 +1,7 @@
 class UnixUserManager::File::Group < UnixUserManager::File::Base
   def initialize(source)
     @edited_records = {}
+    @deleted_records = {}
     super
   end
 
@@ -28,6 +29,20 @@ class UnixUserManager::File::Group < UnixUserManager::File::Base
     true
   end
 
+  def delete(name:)
+    # If it's a newly added record, remove it from the staged new records
+    if @new_records.key?(name)
+      @new_records.delete(name)
+      return true
+    end
+
+    # If it exists in the original data, mark for deletion
+    return false unless exist?(name)
+
+    @deleted_records[name] = true
+    true
+  end
+
   def build
     updated_source = source.split("\n").map do |line|
       stripped = line.strip
@@ -36,6 +51,8 @@ class UnixUserManager::File::Group < UnixUserManager::File::Base
       else
         parts = line.split(':')
         uname = parts[0]
+        # drop deleted entries
+        next nil if @deleted_records.key?(uname)
         if @edited_records.key?(uname)
           edits = @edited_records[uname]
           passwd_marker = parts[1]
@@ -47,7 +64,7 @@ class UnixUserManager::File::Group < UnixUserManager::File::Base
           line
         end
       end
-    end.join("\n")
+    end.compact.join("\n")
 
     if @new_records.any?
       updated_source + "\n" + build_new_records

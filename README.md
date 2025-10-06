@@ -66,6 +66,12 @@ Or install it yourself as:
   # edit existing group (change gid and member list)
   um.groups.edit(name: "games", gid: 420, uname: "games,user1,user2") # true/false
 
+  # delete existing user (removes from both /etc/passwd and /etc/shadow)
+  um.users.delete(name: "risky_man") # true/false
+
+  # delete existing group
+  um.groups.delete(name: "risky_group") # true/false
+
   # build new configs
   um.users.build_passwd # new contents for /etc/passwd
   um.users.build_shadow # new contents for /etc/shadow
@@ -82,8 +88,7 @@ Or install it yourself as:
 
 ## TODO
 
-1. Add support for destroy users/groups
-2. Add support for gshadow
+1. Add support for gshadow
 
 ## Development
 

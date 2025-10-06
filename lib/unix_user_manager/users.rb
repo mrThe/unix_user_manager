@@ -43,4 +43,10 @@ class UnixUserManager::Users < UnixUserManager::Base
   def edit_shadow(name:, password: nil, encrypted_password: nil, salt: nil, algorithm: :sha512)
     shadow_file.edit(name: name, password: password, encrypted_password: encrypted_password, salt: salt, algorithm: algorithm)
   end
+
+  def delete(name:)
+    deleted_passwd = file.delete(name: name)
+    deleted_shadow = shadow_file.delete(name: name)
+    deleted_passwd && deleted_shadow
+  end
 end

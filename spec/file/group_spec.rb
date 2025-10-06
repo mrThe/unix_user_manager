@@ -112,5 +112,40 @@ describe UnixUserManager::File::Group do
         end
       end
     end
+
+    describe "#delete(name:)" do
+      context "when group does not exist" do
+        subject { file.delete(name: 'unknown') }
+
+        it { should be_falsey }
+      end
+
+      context "when group exists" do
+        it "returns true and removes the line from build output" do
+          expect(file.delete(name: existed_name)).to be_truthy
+
+          built_lines = file.build.split("\n")
+          expect(built_lines.any? { |l| l.start_with?("#{existed_name}:") }).to be_falsey
+
+          original = etc_group_content.split("\n")
+          original.each do |line|
+            next if line.start_with?("#{existed_name}:")
+            expect(built_lines).to include(line)
+          end
+        end
+      end
+
+      context "when deleting a staged new record" do
+        let(:name)  { 'risky_man' }
+        let(:uname) { 'risky_man' }
+        let(:gid)   { 42 }
+
+        it "removes the staged addition and keeps original content unchanged" do
+          expect(file.add(name: name, gid: gid, uname: uname)).to be_truthy
+          expect(file.delete(name: name)).to be_truthy
+          expect(file.build).to eql etc_group_content
+        end
+      end
+    end
   end
 end

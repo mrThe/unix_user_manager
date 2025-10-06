@@ -1,6 +1,6 @@
 # UnixUserManager gem
 
-Management tool for unix users. Manually edits `/etc/passwd`, `/etc/shadow` and `/etc/groups`.
+Management tool for unix users. Manually edits `/etc/passwd`, `/etc/shadow`, `/etc/group`, and `/etc/gshadow`.
 
 It will not read nor write anything to your files, but use it on your own risk!
 
@@ -23,12 +23,13 @@ Or install it yourself as:
 ## Usage
 
 ```ruby
-  passwd = `sudo cat /etc/passwd` # File.read('/etc/passwd') # your process should have permission
-  group  = `sudo cat /etc/group`  # File.read('/etc/group') # your process should have permission
-  shadow = `sudo cat /etc/shadow` # File.read('/etc/shadow') # your process should have permission
+  passwd  = `sudo cat /etc/passwd`  # File.read('/etc/passwd')  # your process should have permission
+  group   = `sudo cat /etc/group`   # File.read('/etc/group')   # your process should have permission
+  shadow  = `sudo cat /etc/shadow`  # File.read('/etc/shadow')  # your process should have permission
+  gshadow = `sudo cat /etc/gshadow` # File.read('/etc/gshadow') # your process should have permission
 
   # initialize
-  um = UnixUserManager.new passwd: passwd, group: group, shadow: shadow
+  um = UnixUserManager.new passwd: passwd, group: group, shadow: shadow, gshadow: gshadow
 
   # get some uniq id for you new group and user
   new_id = um.available_id(min_id: 100, max_id: 500, preffered_ids: [200, 300, 333, 400, 500], recursive: false) # 42
@@ -44,7 +45,7 @@ Or install it yourself as:
   # - Hashing is performed using pure-Ruby unix-crypt ($6$, $5$, $1$) via the unix-crypt gem
   # - Supported algorithms: :sha512 ($6$), :sha256 ($5$), :md5 ($1$)
   # - You can also pass encrypted_password to use a precomputed crypt hash as-is
-  # - Salt is required to get deterministic hashes in tests; if omitted, a random salt is used
+  # - Salt is required to get deterministic hashes (eg in tests); if omitted, a random salt is used
 
   # add new group
   um.groups.add(name: "risky_group", uname: "risky_man", gid: new_id) # true
@@ -66,6 +67,13 @@ Or install it yourself as:
   # edit existing group (change gid and member list)
   um.groups.edit(name: "games", gid: 420, uname: "games,user1,user2") # true/false
 
+  # gshadow: shadow group administration (password, admins, members)
+  # - password is typically '!' (no password) or '*' (not usable)
+  # - admins and members are comma-separated lists (e.g., "root,alice")
+  um.shadow_groups.add(name: "adm", password: "!", admins: "root", members: "syslog") # true/false
+  um.shadow_groups.edit(name: "syslog", admins: "root", members: "syslog,daemon")      # true/false
+  um.shadow_groups.delete(name: "adm")                                                     # true/false
+
   # delete existing user (removes from both /etc/passwd and /etc/shadow)
   um.users.delete(name: "risky_man") # true/false
 
@@ -76,6 +84,7 @@ Or install it yourself as:
   um.users.build_passwd # new contents for /etc/passwd
   um.users.build_shadow # new contents for /etc/shadow
   um.groups.build       # new contents for /etc/group
+  um.shadow_groups.build # new contents for /etc/gshadow
 
   # or
   um.users.build # { passwd: "...content...", shadow: "...content..." } new contents for /etc/passwd and /etc/shadow
@@ -84,11 +93,12 @@ Or install it yourself as:
   um.users.build_passwd_new_records # new lines for /etc/passwd, eg "risky_man:x:42:42::/dev/null:/bin/bash"
   um.users.build_shadow_new_records # new lines for /etc/shadow, eg "risky_man:!!:::::::"
   um.groups.build_new_records       # new lines for /etc/group,  eg "risky_group:x:42:risky_man"
+  um.shadow_groups.build_new_records # new lines for /etc/gshadow, eg "adm:!:root:syslog"
 ```
 
 ## TODO
 
-1. Add support for gshadow
+1. —
 
 ## Development
 

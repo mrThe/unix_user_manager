@@ -4,6 +4,12 @@ require 'unix_crypt'
 class UnixUserManager
   module Utils
     module Password
+      def self.pick_encrypted(password:, encrypted_password:, salt:, algorithm:, default:)
+        return encrypted_password unless encrypted_password.to_s.empty?
+        return hash(password: password, algorithm: algorithm, salt: salt) unless password.to_s.empty?
+        default
+      end
+
       def self.hash(password:, algorithm: :sha512, salt: nil)
         raise ArgumentError, "password must be provided" if password.nil? || password.to_s.empty?
 
